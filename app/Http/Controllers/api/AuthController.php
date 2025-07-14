@@ -24,7 +24,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        
+       
         try {
 
             $validator = Validator::make($request->all(), [
@@ -301,8 +301,7 @@ class AuthController extends Controller
 }*/
 
 
-
-  public function handleSocialLogin(Request $request){
+public function handleSocialLogin(Request $request){
     // Validate the incoming request
     $validator = Validator::make($request->all(), [
         'first_name' => 'required|string',
@@ -321,7 +320,6 @@ class AuthController extends Controller
 
     // Check if the user already exists by email
     $user = User::where('email',$request->email)->first();
-  
     if ($user) {
         // User exists, update their fcm_token and device_type
         $user->fcm_token = $request->fcm_token;
@@ -334,11 +332,32 @@ class AuthController extends Controller
         // Return successful login response
         return $this->apiResponse('success', 200, 'Login successful', [
             'access_token' => $accessToken,
-            
-                'id' => $user->user_id,
-                'name' => $user->first_name . ' ' . $user->last_name,
-                'email' => $user->email,
-            
+            'id' => $user->user_id,
+            'name' => $user->first_name . ' ' . $user->last_name,
+            'email' => $user->email,
+        ]);
+    }
+
+    // If no user exists, check for a user with the same provider and provider_id
+    $user = User::where('provider', $request->provider)
+                ->where('provider_id', $request->provider_id)
+                ->first();
+
+    if ($user) {
+        // User exists with the same provider and provider_id
+        $user->fcm_token = $request->fcm_token;
+        $user->device_type = $request->device_type;
+        $user->save();
+
+        // Generate access token for existing user
+        $accessToken = $user->createToken('AuthToken')->plainTextToken;
+
+        // Return successful login response
+        return $this->apiResponse('success', 200, 'Login successful', [
+            'access_token' => $accessToken,
+            'id' => $user->user_id,
+            'name' => $user->first_name . ' ' . $user->last_name,
+            'email' => $user->email,
         ]);
     }
 
@@ -361,11 +380,9 @@ class AuthController extends Controller
     // Return successful registration response
     return $this->apiResponse('success', 200, 'Registration successful', [
         'access_token' => $accessToken,
-        
-            'id' => $user->user_id,
-            'name' => $user->first_name . ' ' . $user->last_name,
-            'email' => $user->email,
-        
+        'id' => $user->user_id,
+        'name' => $user->first_name . ' ' . $user->last_name,
+        'email' => $user->email,
     ]);
 }
 
@@ -1095,7 +1112,7 @@ class AuthController extends Controller
             $request->country_code . $request->phone_number,
             [
                 'from' => $twilioNumber,
-               'body' => "Nexgo has sent you an OTP for verification. Your OTP is $otpCode. It is valid for the next 5 minutes. Please use it before it expires."
+               'body' => "Drivvy has sent you an OTP for verification. Your OTP is $otpCode. It is valid for the next 5 minutes. Please use it before it expires."
             ]
         );
 
@@ -1110,7 +1127,7 @@ class AuthController extends Controller
         \Log::error('Error generating OTP: ' . $e->getMessage());
         return response()->json([
             'status' => 'error',
-            'message' => $e->getMessage()
+            'message' => "Please enter valid Phone number"
         ], 400);
     }
 }
@@ -1320,7 +1337,7 @@ public function testSendSms()
     try {
         // Example phone number (replace with a test number)
         $testPhoneNumber = '+917009951618'; // Use E.164 format
-        $testMessage = "Nexgo has sent you an OTP for verification. Your OTP is 1234. It is valid for the next 5 minutes. Please use it before it expires.";
+        $testMessage = "Drivvy has sent you an OTP for verification. Your OTP is 1234. It is valid for the next 5 minutes. Please use it before it expires.";
 
         // Retrieve Twilio credentials from the environment
         $sid = env('TWILIO_ACCOUNT_SID');

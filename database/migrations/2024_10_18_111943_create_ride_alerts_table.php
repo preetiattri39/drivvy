@@ -11,22 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ride_alerts', function (Blueprint $table) {
-
-            $table->id();
-           $table->unsignedBigInteger('user_id');
-
+         Schema::create('ride_alerts', function (Blueprint $table) {
+        $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->date('departure_time');
-            $table->string('departure_city', 255);
-            $table->string('arrival_city', 255)->nullable();
-            $table->double('user_departure_lat')->nullable();
-            $table->double('user_departure_long')->nullable();
-            $table->double('user_arrival_lat')->nullable();
-            $table->double('user_arrival_long')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->string('departure_city');
+            $table->string('arrival_city');
+            $table->double('user_departure_lat');
+            $table->double('user_departure_long');
+            $table->double('user_arrival_lat');
+            $table->double('user_arrival_long');
+            $table->integer('seat_count');
+            $table->timestamps();
         });
-
     }
 
     /**

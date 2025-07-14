@@ -13,7 +13,9 @@ class RefundPayment extends Model
         'payment_id',
         'refunded_amount',
         'refunded_id',
-        'status'
+        'status',
+        'payment_method',
+        'payment_date'
     ];
 
     public function payments(){

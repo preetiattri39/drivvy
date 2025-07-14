@@ -13,15 +13,12 @@ return new class extends Migration
     {
         Schema::create('fares', function (Blueprint $table) {
             $table->id();
-            $table->string('city')->nullable();
-            $table->decimal('base_fare', 8, 2);
-            $table->decimal('cost_per_kilometer', 8, 2); 
-            $table->decimal('cost_per_minute', 8, 2)->nullable(); 
-            $table->string('service_type')->nullable();
-            $table->unsignedBigInteger('car_id')->nullable(); 
+            $table->string('city')->nullable(); // City or region
+            $table->decimal('base_fare', 8, 2); // Base fare
+            $table->decimal('cost_per_kilometer', 8, 2); // Cost per kilometer
+            $table->decimal('cost_per_minute', 8, 2)->nullable(); // Cost per minute (optional)
+            $table->string('service_type')->nullable(); // Type of service (e.g., standard, luxury)
             $table->timestamps();
-
-            
         });
     }
 
@@ -33,4 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('fares');
     }
 };
-

@@ -14,14 +14,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        
-        $this->call([
-            AdminSeeder::class,
-            CountrySeeder::class,
-            PolicySeeder::class,
-            ReportSeeder::class,
-            VechileSeeder::class
+        // User::factory(10)->create();
+        // Cars::factory(10)->create();
+        // Rides::factory(10)->create();
+        // Bookings::factory(10)->create();
+        // Reviews::factory(10)->create();
+        //  Payments::factory(10)->create();
+        //  Messages::factory(10)->create();
 
-        ]);
+        //$this->call(DummySeeder::class);
+        //$this->call(VechileSeeder::class);
+        //$this->call(PolicySeeder::class);
+        //$this->call(CountrySeeder::class);
+        //$this->call(ReportSeeder::class);
     }
 }

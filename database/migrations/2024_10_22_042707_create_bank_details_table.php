@@ -11,18 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bank_details', function (Blueprint $table) {
+         Schema::create('bank_details', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->string('full_name')->nullable(); 
             $table->string('B5B_number')->nullable();
             $table->string('account_number')->nullable();
             $table->string('paypal_id')->nullable();
             $table->timestamps();
 
-            
+            // Foreign key to users table
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
-
     }
 
     /**

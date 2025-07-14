@@ -11,15 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('chat_tokens', function (Blueprint $table) {
-            $table->id(); // Auto-incrementing primary key
-            $table->unsignedBigInteger('ride_id')->nullable(); // Nullable ride ID
-            $table->unsignedBigInteger('driver_id'); // Driver ID
-            $table->unsignedBigInteger('user_id'); // User ID
-            $table->string('chat_token'); // Chat token
-            $table->boolean('is_blocked')->default(false); // Indicates if the chat is blocked
-            $table->unsignedBigInteger('blocked_by')->nullable(); // ID of the user who blocked the chat
-            $table->timestamps(); // created_at and updated_at columns
+        Schema::create('chat_tokens', function (Blueprint $table) {
+            $table->id(); // This creates an auto-incrementing primary key.
+            $table->unsignedBigInteger('ride_id');
+            $table->unsignedBigInteger('driver_id');
+            $table->unsignedBigInteger('user_id');
+            $table->string('chat_token');
+            $table->timestamps(); // This will add created_at and updated_at columns.
         });
     }
 

@@ -13,6 +13,8 @@ use App\Models\GeneralSetting;
 use Illuminate\Support\Facades\URL;
 use App\Mail\RideRequestMail;
 use App\Mail\BookingDeclinedMail;
+use App\Mail\RideAlertMail;
+
 use App\Mail\RatingMail;
 use App\Mail\DriverRatingMail;
 use App\Mail\DriverPaymentMail;
@@ -37,32 +39,28 @@ class RideController extends Controller
     protected $provider;
 
     public function __construct()
-    {
-        $this->provider = new PayPalClient;
+   {
+       $this->provider = new PayPalClient;
+       $this->provider = \PayPal::setProvider();
+       
+       $config = [
+           'mode'                      =>  env('PAYPAL_MODE'),
+            env('PAYPAL_MODE')    => [
+               'client_id'         => env('PAYPAL_LIVE_CLIENT_ID'),
+               'client_secret'     => env('PAYPAL_LIVE_CLIENT_SECRET'),
+               'app_id'            => 'APP-80W284485P519543T',
+           ],
+           'payment_action' => 'Sale',
+           'currency'       => 'USD',
+           'locale'         => 'en_US',
+           'notify_url'     => 'https://your-app.com/paypal/notify',
+           'validate_ssl'   => true,
 
-        $config = [
-            'mode' => env('PAYPAL_MODE'), // 'sandbox' or 'live'
-            env('PAYPAL_MODE') => [
-                'client_id' => env('PAYPAL_SANDBOX_CLIENT_ID'),
-                'client_secret' => env('PAYPAL_SANDBOX_CLIENT_SECRET'),
-                'app_id' => env('PAYPAL_APP_ID', 'APP-80W284485P519543T'),
-            ],
-            'payment_action' => 'Sale',        // Action type
-            'currency' => 'AUD',         // Currency
-            'locale' => 'en_US',       // Locale
-            'notify_url' => env('PAYPAL_NOTIFY_URL', 'https://your-app.com/paypal/notify'),
-            'validate_ssl' => env('PAYPAL_VALIDATE_SSL', true), // SSL validation
-        ];
-
-        try {
-            // Set API credentials and obtain access token
-            $this->provider->setApiCredentials($config);
-            $this->provider->getAccessToken(); // This should be handled to ensure token is valid
-        } catch (\Exception $e) {
-            // Handle initialization errors
-            throw new \Exception('PayPal Client initialization failed: ' . $e->getMessage());
-        }
-    }
+       ];
+       
+       $this->provider->setApiCredentials($config);
+       $this->provider->getAccessToken();
+   }
 
     public function getAllRides(Request $request)
     {
@@ -208,81 +206,6 @@ class RideController extends Controller
 
             foreach ($rides as $ride) {
 
-                // Define the Haversine formula for dynamic calculation
-               /* $earthRadius = 6371; // Earth's radius in kilometers
-
-                // Calculate departure-related distances
-                $departure_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_departure_lat)) * cos(deg2rad($ride->departure_lat)) *
-                        cos(deg2rad($ride->departure_long) - deg2rad($user_departure_long)) +
-                        sin(deg2rad($user_departure_lat)) * sin(deg2rad($ride->departure_lat))
-                    ) <= 50;
-
-                $stopover1_departure_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_departure_lat)) * cos(deg2rad($ride->stopover1_lat)) *
-                        cos(deg2rad($ride->stopover1_long) - deg2rad($user_departure_long)) +
-                        sin(deg2rad($user_departure_lat)) * sin(deg2rad($ride->stopover1_lat))
-                    ) <= 50;
-
-                $stopover2_departure_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_departure_lat)) * cos(deg2rad($ride->stopover2_lat)) *
-                        cos(deg2rad($ride->stopover2_long) - deg2rad($user_departure_long)) +
-                        sin(deg2rad($user_departure_lat)) * sin(deg2rad($ride->stopover2_lat))
-                    ) <= 50;
-
-                // Initialize dynamic properties for departure
-                $ride->departure_within_radius = 0;
-                $ride->stopover1_departure_within_radius = 0;
-                $ride->stopover2_departure_within_radius = 0;
-
-                // Set departure-related flags
-                if ($departure_within_radius_main) {
-                    $ride->departure_within_radius = 1;
-                } elseif ($stopover1_departure_within_radius_main) {
-                    $ride->stopover1_departure_within_radius = 1;
-                } elseif ($stopover2_departure_within_radius_main) {
-                    $ride->stopover2_departure_within_radius = 1;
-                }
-
-                // Calculate arrival-related distances
-                $arrival_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_arrival_lat)) * cos(deg2rad($ride->arrival_lat)) *
-                        cos(deg2rad($ride->arrival_long) - deg2rad($user_arrival_long)) +
-                        sin(deg2rad($user_arrival_lat)) * sin(deg2rad($ride->arrival_lat))
-                    ) <= 50;
-
-                $stopover1_arrival_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_arrival_lat)) * cos(deg2rad($ride->stopover1_lat)) *
-                        cos(deg2rad($ride->stopover1_long) - deg2rad($user_arrival_long)) +
-                        sin(deg2rad($user_arrival_lat)) * sin(deg2rad($ride->stopover1_lat))
-                    ) <= 50;
-
-                $stopover2_arrival_within_radius_main =
-                    $earthRadius * acos(
-                        cos(deg2rad($user_arrival_lat)) * cos(deg2rad($ride->stopover2_lat)) *
-                        cos(deg2rad($ride->stopover2_long) - deg2rad($user_arrival_long)) +
-                        sin(deg2rad($user_arrival_lat)) * sin(deg2rad($ride->stopover2_lat))
-                    ) <= 50;
-
-                // Initialize dynamic properties for arrival
-                $ride->arrival_within_radius = 0;
-                $ride->stopover1_arrival_within_radius = 0;
-                $ride->stopover2_arrival_within_radius = 0;
-
-                // Set arrival-related flags
-                if ($arrival_within_radius_main) {
-                    $ride->arrival_within_radius = 1;
-                } elseif ($stopover1_arrival_within_radius_main) {
-                    $ride->stopover1_arrival_within_radius = 1;
-                } elseif ($stopover2_arrival_within_radius_main) {
-                    $ride->stopover2_arrival_within_radius = 1;
-                }
-*/
 
                 $departureDate = \Carbon\Carbon::parse($ride->departure_time)->format('Y-m-d');
 
@@ -324,6 +247,7 @@ class RideController extends Controller
                         $ride->stopover1_lat,
                         $ride->stopover1_long
                     ), 2);
+                   
                     $ride->stopover1_distance_km_search = round($this->calculateDistance(
                         $request->user_departure_lat,
                         $request->user_departure_long,
@@ -401,6 +325,7 @@ class RideController extends Controller
                     $ride->stopover2_lat,
                     $ride->stopover2_long
                 ), 2);
+
 
                 // Handle other logic (e.g., driver details, booking status, etc.)
                 $ride->ride_status = $booking ? ($ride->driver_id == $user_id ? 'Your ride' : $booking->status) : ($ride->driver_id == $user_id ? 'Your ride' : null);
@@ -877,6 +802,32 @@ class RideController extends Controller
         }
     }
 
+   /* private function calculateDistance($lat1, $lon1, $lat2, $lon2){
+    $earthRadius = 6371; // Radius of the Earth in km
+
+    // Convert degrees to radians
+    $lat1 = deg2rad($lat1);
+    $lon1 = deg2rad($lon1);
+    $lat2 = deg2rad($lat2);
+    $lon2 = deg2rad($lon2);
+
+    // Calculate differences
+    $dLat = $lat2 - $lat1;
+    $dLon = $lon2 - $lon1;
+
+    // Haversine formula
+    $a = sin($dLat / 2) * sin($dLat / 2) +
+         cos($lat1) * cos($lat2) * 
+         sin($dLon / 2) * sin($dLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+    // Calculate the distance
+    $distance = $earthRadius * $c;
+
+    return round($distance, 2); // Distance in km, rounded to 2 decimal places
+}*/
+
+
 
 
     public function getRides(Request $request)
@@ -936,7 +887,7 @@ class RideController extends Controller
                         ->whereIn('rides.status',[0,1])
                         ->orWhere(function ($subQuery) use ($user_id) {
                             $subQuery->where('bookings.passenger_id', $user_id)
-                                ->whereNotIn('bookings.status', ['completed','cancelled','payment_pending','rejected'])
+                                ->whereNotIn('bookings.status', ['completed','cancelled','payment_pending'])
                                 ->where(function ($paymentQuery) {
                                     $paymentQuery->where('payments.status', '!=', 'pending')
                                         ->orWhereNull('payments.status');
@@ -1141,7 +1092,9 @@ class RideController extends Controller
             $device_type = Auth::user()->device_type;
             if ($fcm_token && Auth::user()->is_notification_ride == 1) {
                 if ($device_type === 'ios') {
-                    $this->sendPushNotificationios($fcm_token, $notificationData['title'], $notificationData['body'], $notificationData['type'], $notificationData['ride_id']);
+                 $this->sendPushNotificationios($fcm_token, $notificationData['title'], $notificationData['body'], $notificationData['type'], $notificationData['ride_id']);
+                  
+
                 } else {
                     $this->sendPushNotification($fcm_token, $notificationData['title'], $notificationData['body'], $notificationData['type'], $notificationData['ride_id']);
                 }
@@ -1155,7 +1108,7 @@ class RideController extends Controller
 
         } catch (\Exception $e) {
 
-
+           // return $e;
             Log::info('Ride create error ------.', ['error' => $e->getMessage()]);
 
             if ($e->getMessage() == "Requested entity was not found.") {
@@ -1196,7 +1149,7 @@ class RideController extends Controller
 
             \Log::info('Departure distance: ' . $departure_distance . ', Arrival distance: ' . $arrival_distance);
 
-            if ($departure_distance <= 50 || $arrival_distance <= 50) {
+            if ($departure_distance <= 100 || $arrival_distance <= 100) {
                 \Log::info('Ride alert matched within 50km for alert ID: ' . $alert->id);
 
                 $this->sendRideAlertNotification($alert->user_id, $ride);
@@ -1215,8 +1168,9 @@ class RideController extends Controller
     /**
      * Send push notification to the user when a matching ride alert is found.
      */
-    private function sendRideAlertNotification($userId, $ride)
+      private function sendRideAlertNotification($userId, $ride)
     {
+         $rideData =$ride;
 
         \Log::info('Sending ride alert notification to user: ' . $userId);
 
@@ -1242,24 +1196,156 @@ class RideController extends Controller
             } else {
                 $p = $this->sendPushNotification($fcm_token, $notificationData['title'], $notificationData['body'], $notificationData['type'], $notificationData['ride_id']);
             }
-
+           
+          
             \Log::info('Ride alert notification sent to user: ' . $userId);
         } else {
             \Log::info('User ' . $userId . ' does not have a valid FCM token or notifications disabled.');
         }
+          try {
+                    Mail::to($user->email)->send(new RideAlertMail($rideData));
+                    \Log::info('Ride alert email sent to user ID: ' . $userId);
+                } catch (\Exception $e) {
+                    \Log::error('Error sending email to user ID: ' . $userId . '. Error: ' . $e->getMessage());
+                }
+
+    }
+
+ public function getbookRideDetail(Request $request, $ride_id)
+    {
+        try {
+            $user_id = Auth::id();
+
+            // Debugging: Log the ride_id
+            \Log::info('Fetching ride details for ride_id: ' . $ride_id);
+
+            // Fetch the booking details for a particular ride along with user, car, ride, and payment details
+            $booking = Rides::join('users as drivers', 'drivers.user_id', '=', 'rides.driver_id')
+                ->when(Schema::hasTable('cars') && Rides::where('ride_id', $ride_id)->value('car_id'), function ($query) {
+                    // Perform join with cars table only if it exists and car_id is set
+                    return $query->join('cars', 'cars.car_id', '=', 'rides.car_id')
+                        ->addSelect('cars.*'); // Add cars fields only if the join is performed
+                })
+                ->leftJoin('bookings', 'bookings.ride_id', '=', 'rides.ride_id')
+                ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.booking_id')
+                ->select(
+                    'drivers.first_name as driver_first_name',
+                    'drivers.last_name as driver_last_name',
+                    'drivers.profile_picture as driver_profile_picture',
+                    'rides.*',
+                    'rides.type as ride_type',
+                    'bookings.booking_id',
+                    'bookings.status',
+                    'bookings.seat_count',
+                    'payments.amount as payment_amount'
+                )
+                ->where('rides.ride_id', $ride_id)
+                ->first();
+
+
+            // Debugging: Log the result of the query
+            \Log::info('Booking details fetched: ', [$booking]);
+
+            if (!$booking) {
+                return $this->apiResponse('error', 404, 'Ride not found or not booked by the user');
+            }
+
+            // Calculate ride time
+            $departure = \Carbon\Carbon::parse($booking->departure_time);
+            $arrival = \Carbon\Carbon::parse($booking->arrival_time);
+
+            $diffInHours = $departure->diffInHours($arrival);
+            $diffInMinutes = $departure->diffInMinutes($arrival) % 60;
+
+            $roundedHours = round($diffInHours);
+            $roundedMinutes = round($diffInMinutes);
+
+            // Construct the rounded ride time string
+            $booking->ride_time = $roundedHours . ' hours ' . $roundedMinutes . ' minutes';
+
+            // Format the profile picture URL
+            if (!empty($booking->driver_profile_picture)) {
+                $booking->driver_profile_picture = URL::to('/') . '/storage/users/' . $booking->driver_profile_picture;
+            }
+
+            // Fetch co-passenger details
+            $coPassengers = Bookings::where('bookings.ride_id', $ride_id) // Specify the table for ride_id
+                ->where('bookings.passenger_id', '!=', $user_id) // Exclude the requesting user
+                ->join('users', 'users.user_id', '=', 'bookings.passenger_id')
+                ->join('rides', 'rides.ride_id', '=', 'bookings.ride_id')
+                ->join('payments', 'payments.booking_id', '=', 'bookings.booking_id') // 
+                ->where('payments.status', '!=', 'pending')
+                ->select(
+                    'users.user_id',
+                    'users.first_name',
+                    'users.last_name',
+                    'users.phone_verfied_at',
+                    'users.verify_id',
+                    'users.email_verified_at',
+                    'users.profile_picture',
+                    'rides.departure_city',  // Adjust column names as needed
+                    'rides.arrival_city',    // Adjust column names as needed
+                    'bookings.status',
+                    'bookings.departure_location',
+                    'bookings.arrival_location',    // Include booking status
+                    'bookings.booking_id',
+                    'bookings.seat_count',
+
+                )
+                ->get();
+
+
+            $GeneralSetting = GeneralSetting::where('id', '1')->first();
+            $platform_fee = $GeneralSetting->platform_fee;
+
+            // Format co-passenger profile picture URLs
+            foreach ($coPassengers as $coPassenger) {
+                if (!empty($coPassenger->profile_picture)) {
+                    $coPassenger->profile_picture = URL::to('/') . '/storage/users/' . $coPassenger->profile_picture;
+                }
+            }
+
+            // Include co-passenger details within ride details
+            $booking->co_passengers = $coPassengers;
+            $stopoversJson = $booking->stopovers;
+
+            // Decode JSON string into a PHP array
+            $stopoversArray = json_decode($stopoversJson, true);
+            $booking->stopovers = $stopoversArray;
+            $booking->ride_id = $ride_id;
+
+            $hasReviewed = Reviews::where('ride_id', $ride_id)
+                ->where('reviewer_id', $user_id)
+                ->exists();
+            // Prepare the response data
+            $data = [
+                'ride_details' => $booking,
+                'platform_fee' => $platform_fee,
+                'has_reviewed' => $hasReviewed
+            ];
+
+            return $this->apiResponse('success', 200, 'Fetched booked ride successfully', $data);
+
+        } catch (\Exception $e) {
+            // Debugging: Log the exception
+            \Log::error('Exception fetching ride details: ' . $e->getMessage());
+
+            return $this->apiResponse('error', 500, $e->getMessage(), $e->getLine());
+        }
     }
 
 
-  public function getbookRideDetail(Request $request, $ride_id)
+
+ public function getbookRideDetailUser(Request $request, $ride_id)
 {
     try {
         $user_id = Auth::id();
 
-        // Debugging: Log the ride_id
-        \Log::info('Fetching ride details for ride_id: ' . $ride_id);
+        // Log the user ID to verify it's correct
+        \Log::info('Fetching ride details for user_id: ' . $user_id);
 
         // Fetch the booking details for a particular ride along with user, car, ride, and payment details
-        $booking = Rides::join('users as drivers', 'drivers.user_id', '=', 'rides.driver_id')
+       $booking = Rides::join('users as drivers', 'drivers.user_id', '=', 'rides.driver_id')
             ->when(Schema::hasTable('cars') && Rides::where('ride_id', $ride_id)->value('car_id'), function ($query) {
                 // Perform join with cars table only if it exists and car_id is set
                 return $query->join('cars', 'cars.car_id', '=', 'rides.car_id')
@@ -1279,12 +1365,16 @@ class RideController extends Controller
                 'payments.amount as payment_amount'
             )
             ->where('rides.ride_id', $ride_id)
+            ->where('bookings.passenger_id', $user_id) // Check if the booking's passenger_id matches the logged-in user
             ->first();
 
         // Fetch the booking status for the current user
         $currentUserBooking = Bookings::where('ride_id', $ride_id)
             ->where('passenger_id', $user_id) // Match the current user's booking
             ->first();
+
+        // Log currentUserBooking to debug the issue
+        \Log::info('Current user booking:', ['currentUserBooking' => $currentUserBooking]);
 
         if ($currentUserBooking) {
             // Assign the booking status to $booking
@@ -1353,10 +1443,9 @@ class RideController extends Controller
                 $coPassenger->profile_picture = URL::to('/') . '/storage/users/' . $coPassenger->profile_picture;
             }
 
-              $coPassenger->hasReviewed = Reviews::where('ride_id', $ride_id)
+            $coPassenger->hasReviewed = Reviews::where('ride_id', $ride_id)
             ->where('receiver_id', $coPassenger->user_id)
             ->exists();
-        
         }
 
         // Include co-passenger details within ride details
@@ -1545,7 +1634,7 @@ class RideController extends Controller
             }
 
             // Get all pending bookings for the ride
-            $bookings = Bookings::where('ride_id', $ride->ride_id)->get();
+            $bookings = Bookings::where('ride_id', $ride->ride_id)->whereIn('status',['pending','confirmed'])->get();
 
             // Loop through each booking and set the status to 'rejected'
             foreach ($bookings as $booking) {
@@ -1588,11 +1677,12 @@ class RideController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Ride deleted successfully.',
+                'data'=> $ride
             ], 200);
         } catch (\Exception $e) {
 
             Log::info('Ride create error ------.', ['error' => $e->getMessage()]);
-
+             return $e;
             if ($e->getMessage() == "Requested entity was not found.") {
                 return response()->json([
                     'status' => 'success',
@@ -1758,16 +1848,17 @@ class RideController extends Controller
 
 
             } else {
+
                 $rideProvider = User::find($ride->driver_id); // Assuming the ride provider is stored in 'provider_id'
 
                 $passenger = Auth::user(); // Get the currently authenticated user (passenger)
-
+                $user_id=$passenger->user_id;
 
                 $booking = Bookings::updateOrCreate(
                     [
                         'ride_id' => $request->ride_id,
                         'passenger_id' => $user_id,
-                        'booking_date' => $request->booking_date
+                        
                     ],
                     [
                         'seat_count' => $request->seat_count,
@@ -1784,7 +1875,8 @@ class RideController extends Controller
                         'arrival_lat' => $request->arrival_lat,
                         'arrival_long' => $request->arrival_long,
                         'amount' => $request->amount,
-                        'platform_amount'=> $request->platform_amount
+                        'platform_amount'=> $request->platform_amount,
+                        'booking_date' => $request->booking_date
                     ]
                 );
 
@@ -1819,7 +1911,7 @@ class RideController extends Controller
                 // Notification to driver 
                 $notificationData = [
                     'title' => ' Ride Request',
-                    'body' => ' New ride requset  from ' . $ride->departure_city . ' to ' . $ride->arrival_city . ' has been send  by user  ' . Auth::user()->email,
+                    'body' => ' New ride request  from ' . $ride->departure_city . ' to ' . $ride->arrival_city . ' has been send  by user  ' . Auth::user()->email,
                     'type' => 'ride_request',
                     'ride_id' => $ride->ride_id
                 ];
@@ -1915,6 +2007,7 @@ class RideController extends Controller
 
             $user = User::where('user_id', $ride->driver_id)->first();
             $payment = Payments::where('booking_id', $booking->booking_id)->first();
+            //return $payment;
             // Update the booking status
             $booking->status = $request->status;
             $booking->save();
@@ -1926,10 +2019,19 @@ class RideController extends Controller
                         $ride->save();
                 \Mail::to($email)->send(new \App\Mail\BookingConfirmedMail($ride, $booking, $user, $payment));
                 } else {
-                    \Mail::to($email)->send(new \App\Mail\BookingDeclinedMail($ride, $booking, $user));
+                      $this->handleRefund($booking);
+                    try {
+                        // Send the email to the user with the booking declined details
+                        \Mail::to($email)->send(new \App\Mail\DriverRideCancellationMail($ride, $booking, $user, $payment));
+                    } catch (\Exception $e) {
+                        // Log the error if email sending fails
+                        \Log::error('Error sending booking declined email: ' . $e->getMessage());
 
-
-            }
+                        // Optionally, you can handle the exception by notifying an admin or showing a user-friendly message
+                        // Example: Notify the admin that the email failed to send
+                        \Log::error('Failed to send email for Booking ID: ' . $booking->booking_id);
+                    }
+                }
 
             return $this->apiResponse('success', 200, 'Booking ' . $request->status . ' successfully.', $ride);
 
@@ -2101,61 +2203,65 @@ class RideController extends Controller
         }
     }
 
-    public function getArchivedRide(Request $request)
-    {
-        $user_id = Auth::id();  // Get the current authenticated user ID
+public function getArchivedRide(Request $request)
+{
+    $user_id = Auth::id();  // Get the current authenticated user ID
 
-        // Get the current date and time in UTC
-       $currentDateTime = now()->setTimezone('Australia/Sydney')->format('Y-m-d H:i:s');
+    // Get the current date and time in UTC
+    $currentDateTime = now()->setTimezone('Australia/Sydney')->format('Y-m-d H:i:s');
 
+    // Fetch the rides where the user is either the driver or the passenger
+    $Bookings = Rides::join('users', 'users.user_id', '=', 'rides.driver_id')
+        ->leftJoin('bookings', 'bookings.ride_id', '=', 'rides.ride_id') // Join bookings to check passenger
+        ->select(
+            'users.first_name',
+            'users.last_name',
+            'users.profile_picture',
+            'users.phone_verfied_at',
+            'users.verify_id',
+            'users.email_verified_at',
+            'rides.*',
+            'bookings.status as booking_status', // Booking status
+            'rides.status as ride_status' // Ride status
+        )
+        ->where(function ($query) use ($user_id) {
+            $query->where('rides.driver_id', $user_id) // Rides where user is the driver
+                ->orWhere('bookings.passenger_id', $user_id); // Or where user is the passenger
+        })
+        ->where(function ($query) use ($currentDateTime) {
+            // Include canceled status for both rides and bookings (assuming canceled status is 2) and past rides (arrival time has passed)
+            $query->whereIn('rides.status', [2,3]) // Canceled rides
+                ->orWhereIn('bookings.status', ['cancelled'])
+                 // Canceled bookings
+                ->orWhereNotIn('rides.status', [0, 1]); // Exclude active and pending rides (status 0, 1)
+        })
+          ->distinct() 
+        ->get();
 
-        // Fetch the rides where the user is either the driver or the passenger
-        $Bookings = Rides::join('users', 'users.user_id', '=', 'rides.driver_id')
-            ->leftJoin('bookings', 'bookings.ride_id', '=', 'rides.ride_id') // Join bookings to check passenger
-            ->select(
-                'users.first_name',
-                'users.last_name',
-                'users.profile_picture',
-                'users.phone_verfied_at',
-                'users.verify_id',
-                'users.email_verified_at',
-                'rides.*',
-                'bookings.status as booking_status',
-                'rides.status as ride_status' // Get ride status
-            )
-            ->where(function ($query) use ($user_id) {
-                $query->where('rides.driver_id', $user_id) // Rides where user is the driver
-                    ->orWhere('bookings.passenger_id', $user_id); // Or where user is the passenger
-            })
-            ->where(function ($query) use ($currentDateTime) {
-                $query->whereNotIn('rides.status', [0, 1]);
-                   // ->orWhere('rides.arrival_time', '<', $currentDateTime); // OR get past rides (arrival time passed)
-            })
-            ->get();
-
-        // Iterate over each booking to update the profile picture URL and set ride status
-        foreach ($Bookings as $booking) {
-            // Update profile picture URL
-            if ($booking->profile_picture) {
-                $booking->profile_picture = URL::to('/') . '/storage/users/' . $booking->profile_picture;
-            } else {
-                $booking->profile_picture = asset('images/default-profile.png');
-            }
-
-            // Set the ride status text
-            if ($booking->driver_id == $user_id) {
-                // If it's the user's ride as a driver
-                $booking->status_text = 'Your ride';
-                $booking->ride_status_text = $this->getRideStatusText($booking->ride_status); // Map ride status to a readable text
-            } else {
-                // If it's a ride the user booked as a passenger
-                $booking->status_text = 'Not Your Ride';
-                $booking->ride_status_text = $booking->booking_status;
-            }
+    // Iterate over each booking to update the profile picture URL and set ride status
+    foreach ($Bookings as $booking) {
+        // Update profile picture URL
+        if ($booking->profile_picture) {
+            $booking->profile_picture = URL::to('/') . '/storage/users/' . $booking->profile_picture;
+        } else {
+            $booking->profile_picture = null;
         }
 
-        return $this->apiResponse('success', 200, 'Fetched Archived Rides successfully', $Bookings);
+        // Set the ride status text
+        if ($booking->driver_id == $user_id) {
+            // If it's the user's ride as a driver
+            $booking->status_text = 'Your ride';
+            $booking->ride_status_text = $this->getRideStatusText($booking->ride_status); // Map ride status to a readable text
+        } else {
+            // If it's a ride the user booked as a passenger
+            $booking->status_text = 'Not Your Ride';
+            $booking->ride_status_text = $booking->booking_status;
+        }
     }
+
+    return $this->apiResponse('success', 200, 'Fetched Archived Rides successfully', $Bookings);
+}
+
 
     // Helper function to map ride status to human-readable text
     private function getRideStatusText($status)
@@ -2176,94 +2282,108 @@ class RideController extends Controller
 
 
 
-    public function cancelbookedRide(Request $request)
-    {
-        $user = Auth::user();
-        $user_id =$user->user_id;
-        // Fetch the booking based on user ID and ride ID
-        $booking = Bookings::where('booking_id', $request->ride_id)->first();
-        $platformFee = $booking->platform_amount;
-        $user = User::where('user_id', $booking->passenger_id)->first();
+public function cancelbookedRide(Request $request){
+    $user = Auth::user();
+    $user_id = $user->user_id;
 
-        if ($booking) {
-            $seat_count = $booking->seat_count;
+    // Fetch the booking based on user ID and ride ID
+  $booking = Bookings::where('booking_id', $request->ride_id)->latest()->first();
 
-            // Fetch ride details
-            $ride = Rides::where('ride_id', $booking->ride_id)->first();
-            if ($ride) {
-                // Update available seats
-                $ride->seat_booked -= $seat_count; // Correctly decrease the seat_booked count
-                $ride->save();
-            }
-
-            // Update booking status to 'cancelled'
-            $booking->status = 'cancelled';
-            $booking->save();
-            $driver = User::where('user_id', $ride->driver_id)->first();
-            // Fetch payment information from payment table
-            $payment = Payments::where('booking_id', $booking->booking_id)->first();
-
-            if (!$payment) {
-                return $this->apiResponse('error', 422, 'Payment record not found for this booking.');
-            }
-
-            // Get the ride start time
-            $rideStartTime = new \Carbon\Carbon($ride->departure_time);
-            $currentTime = \Carbon\Carbon::now();
-
-            // Calculate the difference in hours
-            $differenceInHours = $currentTime->diffInHours($rideStartTime, false);
-
-            // Fetch general settings
-            $generalSetting = GeneralSetting::where('id', '1')->first();
-            //$platformFee = $generalSetting->platform_fee;
-
-            // Determine refund amount
-            $refundAmount = 0;
-
-
-            // No platform fee, refund the full amount or half based on time difference
-            if ($differenceInHours >= 24) {
-                // Full refund
-                $refundAmount = $payment->amount - $platformFee;
-            } else {
-                // 50% refund
-                $refundAmount =  ($payment->amount / 2) - $platformFee;
-            }
-
-
-            // Ensure refund amount is not negative
-            $refundAmount = max($refundAmount, 0);
-
-            // Process refund based on payment method
-            if ($payment->payment_method === 'stripe') {
-                $refundResponse = $this->processStripeRefund($payment, $refundAmount);
-
-            } elseif ($payment->payment_method === 'paypal') {
-                $refundResponse = $this->processPayPalRefund($payment, $refundAmount);
-
-            } else {
-                return $this->apiResponse('error', 422, 'Unknown payment method.');
-            }
-
-            // Check if refund was successful
-            if ($refundResponse['status'] === 'success') {
-                // Delete the booking after a successful refund
-                \Mail::to($driver->email)->send(new \App\Mail\BookingDeclinedMail($ride, $booking, $user));
-
-                \Mail::to($user->email)->send(new \App\Mail\RideCancelMail($ride, $booking, $driver, $refundAmount));
-
-                return $this->apiResponse('success', 200, 'Ride cancelled and refund processed successfully.', [
-                    'booking' => $booking,
-                    'refund' => $refundResponse,
-                ]);
-            } else {
-                return $this->apiResponse('error', 500, 'Refund failed: ' . $refundResponse['message']);
-            }
-        } else {
-            return $this->apiResponse('error', 422, 'Ride does not exist.');
-        }
+    if (!$booking) {
+        return $this->apiResponse('error', 422, 'Ride does not exist.');
     }
+
+    //$platformFee = $booking->platform_amount;
+    $generalSettings = GeneralSetting::first();
+    $platform_fee = $generalSettings ? $generalSettings->platform_fee : 0;
+    $user = User::where('user_id', $booking->passenger_id)->first();
+    $ride = Rides::where('ride_id', $booking->ride_id)->first();
+
+    
+
+    // Update booking status and cancellation flags
+    $booking->status = 'cancelled';
+    $rideStartTime = new \Carbon\Carbon($ride->departure_time);
+    $currentTime = \Carbon\Carbon::now();
+    $currentTime = $currentTime->setTimezone('Australia/Sydney');
+    $differenceInHours = $currentTime->diffInHours($rideStartTime, false);
+
+    $booking->cancel_before_24 = $differenceInHours >= 24 ? 1 : 0;
+    $booking->cancel_after_24 = $differenceInHours < 24 ? 1 : 0;
+    $booking->save();
+    $payment= Payments::where('booking_id',$booking->booking_id)->first();
+    
+
+
+
+    // Update payment details
+    
+    if ($differenceInHours < 24) {
+
+
+        $divided_amount = ($booking->amount / 2) ;
+        $platformFeeAmount = ($divided_amount * $platform_fee) / 100;
+        $refundAmount = $divided_amount -  $platformFeeAmount;
+        Payments::where('payment_id', $payment->payment_id)->update([
+            'refund_status' => 0,
+            'refunded_amount' => $refundAmount,
+            'divided_amount' => $divided_amount,
+            'is_refunded' => 0,
+            'is_automatic_refunded' => 0,
+        ]);
+
+    // Determine refund amount
+        $booking = Bookings::where('booking_id', $request->ride_id)->first();
+        $driverPrice = $booking->amount/2; // Assuming this exists
+        $driverPlatformFeeAmount = ($driverPrice * $platform_fee) / 100;
+        $finalPayoutAmount = max(($driverPrice) - $driverPlatformFeeAmount, 0);
+
+        DB::table('payouts')->insert([
+            'ride_id' => $ride->ride_id,
+            'driver_id' => $ride->driver_id,
+            'amount' => $finalPayoutAmount,
+            'total' => $booking->amount,
+            'status' => 'pending',
+            'amount_paid_by_admin' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }else{
+        $platformFeeAmount = ($payment->amount * $platform_fee) / 100;
+        $refundAmount = $payment->amount - $platformFeeAmount;
+            Payments::where('payment_id', $payment->payment_id)->update([
+            'refund_status' => 0,
+            'refunded_amount' => $refundAmount,
+            'divided_amount' => $refundAmount,
+            'is_refunded' => 0,
+            'is_automatic_refunded' => 0,
+        ]);
+
+
+    }
+    $refundAmount = $differenceInHours >= 24
+    ? $payment->amount - $platformFeeAmount
+    : ($payment->amount / 2);
+    // Determine refund amount
+   
+    $refundAmount = max($refundAmount, 0);
+   if ($booking->status == 'cancelled') {
+        $ride->seat_booked -= $booking->seat_count;
+        $ride->save(); // Save the updated seat count
+    }
+    // Send email notifications
+     $payment= Payments::where('booking_id',$booking->booking_id)->first();
+    $driver = User::where('user_id', $ride->driver_id)->first();
+    \Mail::to($driver->email)->send(new \App\Mail\BookingDeclinedMail($ride, $booking, $user,$payment));
+    \Mail::to($user->email)->send(new \App\Mail\RideCancelMail($ride, $booking, $driver, $refundAmount));
+
+    // Return response
+    return $this->apiResponse('success', 200, 'Ride cancelled and refund processed successfully.', [
+        'booking' => $booking,
+        'refund_amount' => $refundAmount,
+    ]);
+}
+
 
 
     // PayPal refund processing method
@@ -2320,6 +2440,14 @@ class RideController extends Controller
                         'status' => 'refunded',
                     ]
                 );
+
+                 Payments::where('payment_id', $payment->payment_id)->update([
+                        'refund_status' => 1,            // Custom field to indicate refund status
+                        'refunded_amount' => $refundAmount, // Field to store the refunded amount
+                        'is_refunded' => 1,              // Set to 1 to indicate the refund is processed
+                        'is_automatic_refunded' => 1,   // Indicate if the refund was automatic
+                    ]);
+
                 return [
                     'status' => 'success',
                     'message' => "refunded successfully",
@@ -2374,62 +2502,67 @@ class RideController extends Controller
     }
 
     // Stripe refund processing method
-    private function processStripeRefund($payment, $refundAmount)
-    {
-        try {
-            // Set the API key
-            \Stripe\Stripe::setApiKey(env('STRIPE_SECRET')); // Ensure you have your Stripe secret key in .env
+private function processStripeRefund($payment, $refundAmount)
+{
+    try {
+        // Set the API key
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET')); // Ensure you have your Stripe secret key in .env
 
-            // Create the refund
-            $refund = \Stripe\Refund::create([
-                'charge' => $payment->transaction_id, // The ID of the original charge
-                'amount' => $refundAmount * 100, // Amount in cents
-            ]);
+        // Create the refund
+        $refund = \Stripe\Refund::create([
+            'charge' => $payment->transaction_id, // The ID of the original charge
+            'amount' => $refundAmount * 100, // Amount in cents
+        ]);
 
+        // Create or update a record in the refund_payment table
+        RefundPayment::updateOrCreate(
+            ['payment_id' => $payment->payment_id], // Search criteria
+            [
+                'refunded_amount' => $refundAmount,   // Amount refunded
+                'refunded_id' => $refund->id, // Refund ID from Stripe
+                'status' => 'refunded'               // Status set to refunded
+            ]
+        );
 
+        // Update the payments table to reflect refund status
+        Payments::where('payment_id', $payment->payment_id)->update([
+            'refund_status' => 1,            // Custom field to indicate refund status
+            'refunded_amount' => $refundAmount, // Field to store the refunded amount
+            'is_refunded' => 1,              // Set to 1 to indicate the refund is processed
+            'is_automatic_refunded' => 1,   // Indicate if the refund was automatic
+        ]);
 
-            // Create a record in the refund_payment table
-            RefundPayment::updateOrCreate(
-                ['payment_id' => $payment->payment_id], // Search criteria
-                [
-                    'refunded_amount' => $refundAmount,   // Amount refunded
-                    'refunded_id' => $refund->id, // Refund ID from Stripe
-                    'status' => 'refunded'               // Status set to refunded
-                ]
-            );
+        return [
+            'status' => 'success',
+            'message' => 'Refunded successfully',
+            'refund_id' => $refund->id, // Refund ID from Stripe
+        ];
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        // Handle API errors and log the failure in refund_payment
+        RefundPayment::create([
+            'payment_id' => $payment->payment_id, // ID of the original payment
+            'refunded_amount' => 0, // No amount refunded
+            'status' => 'refund_failed', // Indicate that the refund failed
+        ]);
 
-            return [
-                'status' => 'success',
-                'message' => 'refunded successfully',
-                'refund_id' => $refund->id, // Refund ID from Stripe
-            ];
-        } catch (\Stripe\Exception\ApiErrorException $e) {
-            // Create record for failed refund in case of API error
-            RefundPayment::create([
-                'payment_id' => $payment->payment_id, // ID of the original payment
-                'refunded_amount' => 0, // No amount refunded
-                'status' => 'refund_failed', // Indicate that the refund failed
-            ]);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage(), // Error message from Stripe
+        ];
+    } catch (\Exception $e) {
+        // Handle general exceptions and log the failure in refund_payment
+        RefundPayment::create([
+            'payment_id' => $payment->payment_id, // ID of the original payment
+            'refunded_amount' => 0, // No amount refunded
+            'status' => 'refund_failed', // Indicate that the refund failed
+        ]);
 
-            return [
-                'status' => 'error',
-                'message' => $e->getMessage(), // Error message from Stripe
-            ];
-        } catch (\Exception $e) {
-            // Create record for failed refund in case of a general exception
-            RefundPayment::create([
-                'payment_id' => $payment->payment_id, // ID of the original payment
-                'refunded_amount' => 0, // No amount refunded
-                'status' => 'refund_failed', // Indicate that the refund failed
-            ]);
-
-            return [
-                'status' => 'error',
-                'message' => 'Refund failed: ' . $e->getMessage(),
-            ];
-        }
+        return [
+            'status' => 'error',
+            'message' => 'Refund failed: ' . $e->getMessage(),
+        ];
     }
-
+}
 
     public function farePrice(Request $request)
     {
@@ -2525,7 +2658,8 @@ class RideController extends Controller
             'distance' => $totalDistance, // Returning all distances and fares for each segment
             'total_distance' => round($distance1, 2), // Total distance
             'base_fare' => $TotalFare, // Total fare
-            'recommended_price' => $this->calculateFareForSegment($distance1, $base_fare, $cost_per_kilometer)['recommended_price'],
+           'recommended_price' => $this->calculateFareForSegment($distance1, $base_fare, $cost_per_kilometer)['recommended_price'],
+
             'min_price' => $this->calculateFareForSegment($distance1, $base_fare, $cost_per_kilometer)['min_price'],
             'max_price' => $this->calculateFareForSegment($distance1, $base_fare, $cost_per_kilometer)['max_price'],
             'smoking_allowed' => $smoking_allowed,
@@ -2551,7 +2685,7 @@ class RideController extends Controller
 
         // Calculate recommended price range
         $recommended_price_min = round($fare);
-        $recommended_price_max = round($fare + 15, 2);
+        $recommended_price_max = round($fare + 15);
         $recommended_price = "$recommended_price_min - $recommended_price_max";
 
         // Calculate min price, ensuring it?s at least 1
@@ -2661,24 +2795,28 @@ class RideController extends Controller
                     // Calculate total payment amount for the ride
                     $totalPaymentAmount = Payments::whereIn('booking_id', $bookingIds)
                         ->sum('amount');
+                     // Calculate total payment amount for the ride
+                    $total_platform_amount = Bookings::whereIn('booking_id', $bookingIds)
+                        ->sum('platform_amount');
 
                     // Fetch the commission percentage from the general settings table
                     $generalSettings = GeneralSetting::first();
                     $commissionPercentage = $generalSettings ? $generalSettings->platform_fee : 0;
 
                     // Calculate the commission amount to deduct
-                    $commissionAmount = ($totalPaymentAmount * $commissionPercentage) / 100;
+                   // $commissionAmount = ($totalPaymentAmount * $commissionPercentage) / 100;
 
                     // Calculate the final payout amount for the driver
-                    $finalPayoutAmount = $totalPaymentAmount - $commissionAmount;
+                    $finalPayoutAmount = $totalPaymentAmount - $total_platform_amount;
 
                     // Create a payout record and append to $payouts array
                     $payout = DB::table('payouts')->insertGetId([
                         'ride_id' => $ride->ride_id,
                         'driver_id' => $ride->driver_id,
                         'amount' => $finalPayoutAmount,
+                         'total' => $totalPaymentAmount,
                         'status' => 'pending',
-                        'stripe_payout_id' => null,
+                        'amount_paid_by_admin' => null,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
@@ -2869,16 +3007,18 @@ class RideController extends Controller
     {
         try {
             // Fetch user, driver, ride, booking, and payment details
-            $user = User::where('user_id', 112)->first();
-            $driver = User::where('user_id', 237)->first();
-            $ride = Rides::where('ride_id', 684)->first();
-            $booking = Bookings::where('booking_id', 403)->first();
-            $payment = Payments::where('booking_id', 403)->first();
-            $finalPayoutAmount = 200;
+            $user  = User::where('user_id',397)->first();
+             $driver = User::where('user_id',394)->first();
+       
+            $ride = Rides::where('ride_id',119)->first();
+            $booking = Bookings::where('booking_id',97 )->first();
+            $payment = Payments::where('booking_id',97)->first();
+            $refundAmount = 200;
             $amount = 200;
             $subject = "Ride Booked";
-              $timezone = Session::get('timezone') ?? 'Australia/Sydney';
-                \Mail::to('preetiattri39@gmail.com')->send(new \App\Mail\BookingStatusMail($ride,$booking,$user,'rejected'));
+            $timezone = Session::get('timezone') ?? 'Australia/Sydney';
+
+             \Mail::to('developer@esferasoft.com')->send(new \App\Mail\RideCancelMail($ride, $booking, $driver, $refundAmount));
              
             return response()->json(['success' => 'Mail sent.'], 200);
 

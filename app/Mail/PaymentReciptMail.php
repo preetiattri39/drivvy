@@ -35,7 +35,7 @@ class PaymentReciptMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Nexgo - Payment receipt for your booking',
+            subject: 'Drivvy - Payment receipt for your booking',
         );
     }
 

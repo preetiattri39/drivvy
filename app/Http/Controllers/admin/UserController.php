@@ -144,53 +144,30 @@ public function deletedUser(Request $request){
      * createdDate  : 31-05-2024
      * purpose      : add the user
     */
-  public function add(Request $request) 
+    public function add(Request $request) 
 {
     try {
         if ($request->isMethod('get')) {
             return view("admin.user.add");
-        }
-
-        if ($request->isMethod('post')) {
+        } elseif ($request->isMethod('post')) {
             // Validate input data
             $validator = Validator::make($request->all(), [
                 'first_name' => 'required|string|max:255',
-                'last_name'  => 'required|string|max:255',
                 'email' => 'required|email:rfc,dns|unique:users,email',
                 'phone_number' => 'nullable|numeric|digits_between:8,15|unique:users,phone_number',
                 'password' => 'required|min:8|confirmed',
-                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'license' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'national_id' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'technical_inspection_certificate' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'registration_certificate' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'insurance' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Ensure this matches your file type requirements
             ]);
 
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
 
-            // File fields
-            $files = [
-                'profile_picture',
-                'license',
-                'national_id',
-                'technical_inspection_certificate',
-                'registration_certificate',
-                'insurance',
-            ];
-
-            $uploaded = [];
-
-            foreach ($files as $field) {
-                if ($request->hasFile($field)) {
-                    $filename = $field . '_' . time() . '.' . $request->file($field)->extension();
-                    $request->file($field)->storeAs('public/users', $filename);
-                    $uploaded[$field] = $filename;
-                } else {
-                    $uploaded[$field] = null;
-                }
+            // Handle file upload
+            $imageName = '';
+            if ($request->hasFile('profile_picture')) {
+                $imageName = time() . '.' . $request->profile_picture->extension();  
+                $request->profile_picture->storeAs('public/users', $imageName);
             }
 
             // Create user
@@ -202,18 +179,12 @@ public function deletedUser(Request $request){
                 'bio' => $request->bio,
                 'country_code' => $request->country_code,
                 'phone_number' => $request->phone_number ?? '',
-                'profile_picture' => $uploaded['profile_picture'],
-                'license' => $uploaded['license'],
-                'national_id' => $uploaded['national_id'],
-                'technical_inspection_certificate' => $uploaded['technical_inspection_certificate'],
-                'registration_certificate' => $uploaded['registration_certificate'],
-                'insurance' => $uploaded['insurance'],
+                'profile_picture' => $imageName,
                 'join_date' => Carbon::now()
             ]);
 
             return redirect()->route('admin.user.list')->with('success', 'User added successfully.');
         }
-
     } catch (\Exception $e) {
         return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
     }
@@ -278,12 +249,12 @@ public function deletedUser(Request $request){
                     ->select(
                         'driver.first_name as driver_first_name',
                         'reviewer.first_name as reviewer_first_name', 
-                        'reviewer.last_name as reviewer_id',// Select reviewer first name
+                        'reviewer.last_name as reviewer_last_name',// Select reviewer first name
                         'rides.*',
                         'reviews.*'
                     )
-                    ->where('reviews.reviewer_id', $id) // Filtering by receiver_id matching authenticated user
-                    ->orderBy('reviews.reviewer_id', 'desc')
+                    ->where('reviews.receiver_id', $id) // Filtering by receiver_id matching authenticated user
+                    ->orderBy('reviews.review_id', 'desc')
                     ->paginate(10);
 
             
@@ -327,7 +298,7 @@ public function edit(Request $request, $id)
     try {
         if ($request->isMethod('get')) {
             $user = User::findOrFail($id);
-            $country_shortname = 'au'; // Default
+            $country_shortname = 'au'; // Default country
 
             if ($user->country_code) {
                 $code = str_replace("+", "", $user->country_code);
@@ -338,20 +309,12 @@ public function edit(Request $request, $id)
             }
 
             return view("admin.user.edit", compact('user', 'country_shortname'));
-        }
-
-        if ($request->isMethod('post')) {
+        } elseif ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email',
-                'phone_number' => 'nullable|numeric|digits_between:8,15|unique:users,phone_number,' . $id . ',user_id',
-                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'license' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'national_id' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'technical_inspection_certificate' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'registration_certificate' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
-                'insurance' => 'nullable|image|mimes:jpeg,png,jpg,gif,pdf|max:2048',
+                'first_name'    => 'required|string|max:255',
+                'email'         => 'required|email',
+                'phone_number'  => 'nullable|numeric|digits_between:8,15|unique:users,phone_number,' . $id . ',user_id', // Adjusted column name
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
             if ($validator->fails()) {
@@ -360,38 +323,32 @@ public function edit(Request $request, $id)
 
             $user = User::findOrFail($id);
 
-            $fileFields = [
-                'profile_picture',
-                'license',
-                'national_id',
-                'technical_inspection_certificate',
-                'registration_certificate',
-                'insurance',
-            ];
+            $imageName = $user->profile_picture;
 
-            foreach ($fileFields as $field) {
-                if ($request->hasFile($field)) {
-                    // Delete old file
-                    $oldFile = $user->{$field};
-                    if ($oldFile && Storage::exists('public/users/' . $oldFile)) {
-                        Storage::delete('public/users/' . $oldFile);
+            if ($request->hasFile('profile_picture')) {
+                // Delete old image if it exists
+                if ($imageName) {
+                    $deleteImage = 'public/users/' . $imageName;
+                    if (Storage::exists($deleteImage)) {
+                        Storage::delete($deleteImage);
                     }
-
-                    // Upload new file
-                    $filename = $field . '_' . time() . '.' . $request->file($field)->extension();
-                    $request->file($field)->storeAs('public/users', $filename);
-                    $user->{$field} = $filename;
                 }
+
+                // Store new image
+                $imageName = time() . '.' . $request->profile_picture->extension();
+                $request->profile_picture->storeAs('public/users', $imageName);
             }
 
-            // Update user fields
-            $user->first_name = $request->first_name;
-            $user->last_name = $request->last_name;
-            $user->email = $request->email;
-            $user->country_code = $request->country_code;
-            $user->phone_number = $request->phone_number;
-            $user->bio = $request->bio;
-            $user->save();
+            // Update user record
+            $user->update([
+                'first_name'    => $request->first_name,
+                'last_name'     => $request->last_name, // Corrected to use `last_name`
+                'email'         => $request->email,
+                'country_code'  => $request->country_code,
+                'phone_number'  => $request->phone_number,
+                'profile_picture' => $imageName,
+                'bio'           => $request->bio
+            ]);
 
             return redirect()->route('admin.user.list')->with('success', 'User updated successfully.');
         }
@@ -399,7 +356,6 @@ public function edit(Request $request, $id)
         return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
     }
 }
-
 
 
     /**End method edit**/

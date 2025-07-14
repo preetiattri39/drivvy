@@ -1,5 +1,5 @@
 <div class="header">
-            <div class="logo">Nexgo</div>
+            <div class="logo">Drivvy</div>
             <div class="dots">
                 
             </div>

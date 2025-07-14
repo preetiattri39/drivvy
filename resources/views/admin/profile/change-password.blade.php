@@ -132,7 +132,7 @@
               required: true,
               noSpace: true,
               minlength: 8,
-              equalTo: "#password",
+              equalTo: "#password-field",
             },
         },
         messages: {

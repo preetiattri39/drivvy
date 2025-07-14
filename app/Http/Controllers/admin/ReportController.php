@@ -25,33 +25,28 @@ class ReportController extends Controller
 
      protected $provider;
 
-    public function __construct()
-    {
-        $this->provider = new PayPalClient;
+      public function __construct(){
+       $this->provider = new PayPalClient;
+       $this->provider = \PayPal::setProvider();
+       
+       $config = [
+           'mode'                      =>  env('PAYPAL_MODE'),
+            env('PAYPAL_MODE')    => [
+               'client_id'         => env('PAYPAL_LIVE_CLIENT_ID'),
+               'client_secret'     => env('PAYPAL_LIVE_CLIENT_SECRET'),
+               'app_id'            => 'APP-80W284485P519543T',
+           ],
+           'payment_action' => 'Sale',
+           'currency'       => 'USD',
+           'locale'         => 'en_US',
+           'notify_url'     => 'https://your-app.com/paypal/notify',
+           'validate_ssl'   => true,
 
-        $config = [
-            'mode' => env('PAYPAL_MODE'), // 'sandbox' or 'live'
-            env('PAYPAL_MODE') => [
-                'client_id' => env('PAYPAL_SANDBOX_CLIENT_ID'),
-                'client_secret' => env('PAYPAL_SANDBOX_CLIENT_SECRET'),
-                'app_id' => env('PAYPAL_APP_ID', 'APP-80W284485P519543T'),
-            ],
-            'payment_action' => 'Sale',        // Action type
-            'currency' => 'AUD',         // Currency
-            'locale' => 'en_US',       // Locale
-            'notify_url' => env('PAYPAL_NOTIFY_URL', 'https://your-app.com/paypal/notify'),
-            'validate_ssl' => env('PAYPAL_VALIDATE_SSL', true), // SSL validation
-        ];
-
-        try {
-            // Set API credentials and obtain access token
-            $this->provider->setApiCredentials($config);
-            $this->provider->getAccessToken(); // This should be handled to ensure token is valid
-        } catch (\Exception $e) {
-            // Handle initialization errors
-            throw new \Exception('PayPal Client initialization failed: ' . $e->getMessage());
-        }
-    }
+       ];
+       
+       $this->provider->setApiCredentials($config);
+       $this->provider->getAccessToken();
+   }
 
 
 // Ensure this is imported at the top
@@ -182,7 +177,7 @@ public function changeStatus(Request $request, $id){
                 $message->to($user_email)
                     ->subject('Finalised the complaint against ride');
             });
-            \Mail::to($driver->email)->send(new DriverPaymentMail($user, $ride, $finalPayoutAmount));
+        //Mail::to($driver->email)->send(new DriverPaymentMail($user, $ride, $finalPayoutAmount));
         }
 
         // After all the status-based emails, send final payout email to the driver (only once)
